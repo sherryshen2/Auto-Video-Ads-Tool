@@ -1,0 +1,796 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Video Ads投广工具</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #18221f;
+      --muted: #7d8b86;
+      --line: #e6ece8;
+      --paper: #f6f8f5;
+      --surface: #fff;
+      --green: #147d5a;
+      --green-dark: #0c6145;
+      --mint: #e7f4ee;
+      --amber: #a36c14;
+      --red: #b54745;
+      --shadow: 0 16px 48px rgba(26, 50, 40, .07);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 14px;
+    }
+    button, input, textarea { font: inherit; }
+    .app { min-height: 100vh; }
+    header {
+      height: 68px;
+      padding: 0 38px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255,255,255,.82);
+    }
+    .brand { display: flex; align-items: center; gap: 11px; font-weight: 650; letter-spacing: -.02em; }
+    .brand-mark { width: 31px; height: 31px; border-radius: 10px; display: grid; place-items: center; color: #fff; background: var(--green); }
+    .brand-mark svg { width: 16px; height: 16px; }
+    .header-side { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; }
+    .device-dot { width: 7px; height: 7px; border-radius: 50%; background: #9aa6a0; }
+    .device-dot.connected { background: #20a673; box-shadow: 0 0 0 3px #e2f5ed; }
+    main { max-width: 1180px; margin: 0 auto; padding: 47px 30px 80px; }
+    .eyebrow { display: flex; align-items: center; gap: 8px; color: var(--green); text-transform: uppercase; font-size: 11px; font-weight: 700; letter-spacing: .12em; }
+    .eyebrow-line { width: 23px; height: 1px; background: var(--green); }
+    h1 { margin: 12px 0 8px; font-size: clamp(29px, 3.2vw, 39px); font-weight: 620; letter-spacing: -.045em; line-height: 1.12; }
+    .subtitle { margin: 0; color: #687771; font-size: 14px; line-height: 1.7; }
+    .workspace { margin-top: 31px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; }
+    .toolbar { min-height: 76px; padding: 17px 21px; display: flex; align-items: center; justify-content: space-between; gap: 18px; border-bottom: 1px solid var(--line); }
+    .section-title { font-weight: 640; font-size: 14px; }
+    .section-hint { margin-top: 4px; color: var(--muted); font-size: 12px; }
+    .actions { display: flex; align-items: center; gap: 9px; }
+    .button { border: 1px solid #d9e2dd; background: #fff; color: #36443e; border-radius: 9px; height: 37px; padding: 0 14px; cursor: pointer; font-weight: 580; transition: .16s ease; }
+    .button:hover:not(:disabled) { border-color: #aabbb1; background: #f9fbf9; }
+    .button:disabled { cursor: not-allowed; opacity: .45; }
+    .button.primary { color: #fff; border-color: var(--green); background: var(--green); box-shadow: 0 3px 7px rgba(20,125,90,.14); }
+    .button.primary:hover:not(:disabled) { background: var(--green-dark); }
+    .button.stop { color: var(--red); }
+    .dropzone { margin: 21px; min-height: 168px; display: grid; place-items: center; border: 1px dashed #c7d5cd; border-radius: 14px; background: #fbfdfb; cursor: pointer; transition: .16s ease; }
+    .dropzone:hover, .dropzone.dragging { border-color: var(--green); background: #f5fbf7; }
+    .drop-content { text-align: center; padding: 22px; }
+    .upload-icon { width: 38px; height: 38px; display: grid; place-items: center; margin: 0 auto 10px; border-radius: 12px; color: var(--green); background: var(--mint); }
+    .upload-icon svg { width: 19px; height: 19px; }
+    .drop-title { font-weight: 630; font-size: 14px; }
+    .drop-subtitle { margin-top: 5px; color: var(--muted); font-size: 12px; }
+    .drop-subtitle strong { color: var(--green); font-weight: 650; }
+    .drop-requirements { margin-top: 14px; color: #8a9791; font-size: 11px; }
+    input[type=file] { display: none; }
+    .notice { display: none; align-items: flex-start; gap: 9px; margin: 0 21px 20px; padding: 11px 13px; border-radius: 9px; color: #62716a; background: #f6f8f6; font-size: 11px; line-height: 1.55; }
+    .notice.visible { display: flex; }
+    .notice svg { flex: 0 0 auto; width: 14px; height: 14px; margin-top: 1px; color: #87948e; }
+    .notice.error { color: #984440; background: #fff4f2; }
+    .notice.error svg { color: var(--red); }
+    .notice a { flex: 0 0 auto; color: var(--green-dark); font-weight: 650; text-decoration: underline; }
+    .table-wrap { display: none; border-top: 1px solid var(--line); }
+    .table-wrap.visible { display: block; }
+    .summary-row { display: flex; align-items: center; justify-content: space-between; padding: 15px 21px; }
+    .file-chip { display: inline-flex; align-items: center; gap: 7px; color: #55655d; font-size: 12px; }
+    .file-chip svg { width: 14px; height: 14px; color: var(--green); }
+    .count { color: var(--muted); font-size: 12px; }
+    .record-tabs { display: flex; gap: 6px; padding: 0 21px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .record-tab { border: 0; border-bottom: 2px solid transparent; background: none; padding: 13px 15px 11px; color: #6f7d75; cursor: pointer; font-size: 12px; font-weight: 620; }
+    .record-tab:hover { color: var(--green); }
+    .record-tab[aria-selected="true"] { color: var(--green); border-bottom-color: var(--green); }
+    .record-tab:focus-visible, .row-checkbox:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+    .record-panel[hidden] { display: none !important; }
+    .selection-bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 21px; color: #66746c; font-size: 11px; }
+    .select-all-label { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+    .row-checkbox { width: 15px; height: 15px; margin: 0; accent-color: var(--green); cursor: pointer; }
+    .row-checkbox:disabled { cursor: not-allowed; }
+    .select-cell { width: 54px; text-align: center; }
+    tr.unselected-row td { color: #89958f; background: #fafbf9; }
+    .table-scroll { overflow: auto; max-height: min(68vh, 760px); border-top: 1px solid var(--line); }
+    table { width: 100%; min-width: 850px; border-collapse: collapse; text-align: left; }
+    th { position: sticky; top: 0; z-index: 1; padding: 11px 15px; color: #78857e; background: #fbfcfb; font-size: 10px; font-weight: 670; text-transform: uppercase; letter-spacing: .07em; }
+    td { padding: 12px 15px; border-top: 1px solid #edf1ee; color: #36443e; font-size: 12px; vertical-align: middle; }
+    tbody tr:hover { background: #fcfdfc; }
+    .id-cell { font-weight: 650; color: #202d27; white-space: nowrap; }
+    .link-cell { display: block; max-width: 330px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #47836a; text-decoration: none; }
+    .link-cell:hover { text-decoration: underline; }
+    .muted-cell { color: #77847d; }
+    .status { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; padding: 4px 8px; border-radius: 20px; background: #f0f3f1; color: #727f78; font-size: 10px; }
+    .status::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+    .status.error { color: #ae4d49; background: #fff0ee; }
+    .status.match { color: #147d5a; background: #eaf6f0; }
+    .status.unmatched { color: #997012; background: #fff7e8; }
+    .ad-failure { min-width: 220px; max-width: 340px; margin-top: 7px; color: #984440; font-size: 11px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .ad-failure-label { font-weight: 650; }
+    .ad-confirm-actions { display: flex; gap: 6px; margin-top: 8px; }
+    .ad-confirm-actions .button { min-height: 30px; padding: 5px 9px; font-size: 11px; white-space: nowrap; }
+    .ad-confirm-success { color: #147d5a; }
+    .ad-confirm-failure { color: #ae4d49; }
+    .ad-manual { margin-top: 6px; color: #74827b; font-size: 10px; line-height: 1.5; white-space: nowrap; }
+    .duplicate { color: var(--amber); font-size: 10px; margin-left: 4px; }
+    .empty-state { display: none; padding: 31px 20px; text-align: center; color: var(--muted); font-size: 12px; }
+    .empty-state.visible { display: block; }
+    .footer-note { display: flex; align-items: flex-start; gap: 9px; margin-top: 16px; padding: 0 4px; color: #839089; font-size: 11px; line-height: 1.6; }
+    .footer-note svg { flex: 0 0 auto; width: 14px; height: 14px; margin-top: 1px; }
+    .scan-panel { display: none; margin: 18px 21px 20px; padding: 17px; border: 1px solid #e3ebe6; border-radius: 13px; background: #fbfdfb; }
+    .scan-panel.visible { display: block; }
+    .scan-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+    .scan-title { font-weight: 650; }
+    .scan-help { margin-top: 5px; max-width: 670px; color: #74827b; font-size: 11px; line-height: 1.6; }
+    .scan-counters { display: flex; flex-wrap: wrap; gap: 7px; margin: 14px 0; }
+    .counter { padding: 6px 9px; border: 1px solid #e4ebe7; border-radius: 8px; color: #56655e; background: white; font-size: 11px; }
+    .counter strong { color: #202d27; font-size: 12px; }
+    .scan-status { min-height: 18px; margin-bottom: 10px; color: #607069; font-size: 11px; }
+    .scan-input-row { display: flex; gap: 8px; }
+    .scan-input { flex: 1; min-width: 0; height: 38px; padding: 0 11px; border: 1px solid #d9e2dd; border-radius: 8px; background: white; color: var(--ink); outline: none; }
+    .scan-input:focus { border-color: #6cae91; box-shadow: 0 0 0 3px #e7f4ee; }
+    .scan-actions { display: flex; gap: 8px; }
+    .scan-hint { margin-top: 8px; color: #849189; font-size: 10px; line-height: 1.5; }
+    .subtable-heading { display: flex; align-items: center; justify-content: space-between; padding: 16px 21px 10px; border-top: 1px solid var(--line); font-weight: 640; font-size: 12px; }
+    .history-scroll { overflow: auto; max-height: min(68vh, 760px); border-top: 1px solid var(--line); }
+    .history-scroll table { min-width: 740px; }
+    .code-cell { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; white-space: nowrap; }
+    .result-link { display: block; max-width: 350px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #47836a; }
+    .scan-empty { padding: 16px 21px; color: #89958f; font-size: 11px; }
+    @media (max-width: 700px) {
+      header { height: 58px; padding: 0 17px; }
+      main { padding: 33px 13px 54px; }
+      .toolbar { align-items: flex-start; flex-direction: column; padding: 16px; }
+      .actions { width: 100%; }
+      .actions .button { flex: 1; }
+      .dropzone { margin: 15px; }
+      .notice { margin: 0 15px 15px; }
+      .summary-row { padding: 13px 16px; }
+      .scan-panel { margin: 14px 15px; padding: 13px; }
+      .scan-top { flex-direction: column; }
+      .scan-input-row { flex-direction: column; }
+      .scan-actions .button { flex: 1; }
+      .subtable-heading { padding-left: 16px; padding-right: 16px; }
+      .record-tabs { padding: 0 15px; }
+      .selection-bar { padding: 12px 15px; flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6.8a1 1 0 0 1 1.52-.85l7.24 4.4a1.93 1.93 0 0 1 0 3.3l-7.24 4.4A1 1 0 0 1 9 17.2V6.8Z" fill="currentColor"/></svg></div>
+      <span>素材工作台</span>
+    </div>
+    <div class="header-side"><span class="device-dot" id="device-dot"></span><span id="device-label">正在连接模拟器…</span></div>
+  </header>
+  <main>
+    <div class="eyebrow"><span class="eyebrow-line"></span>VIDEO RECOGNITION</div>
+    <h1>Video Ads投广工具</h1>
+    <p class="subtitle">导入 Excel 清单，逐条识别 Seller 视频，为目标视频按表格参数发布广告，并记录弹窗结果。</p>
+
+    <section class="workspace" aria-label="视频识别工作区">
+      <div class="toolbar">
+        <div>
+          <div class="section-title">素材清单</div>
+          <div class="section-hint">支持 Excel 工作簿（.xlsx）和 CSV 文件</div>
+        </div>
+        <div class="actions">
+          <button class="button" id="replace-button" type="button" hidden>更换文件</button>
+          <button class="button primary" id="scan-start-button" type="button" disabled>开始识别并投广</button>
+          <button class="button stop" id="scan-stop-button" type="button" hidden>停止识别</button>
+        </div>
+      </div>
+      <label class="dropzone" id="dropzone" for="file-input">
+        <div class="drop-content">
+          <div class="upload-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M12 15V4m0 0L8 8m4-4 4 4M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="drop-title">拖放文件到这里，或 <strong style="color:var(--green)">选择文件</strong></div>
+          <div class="drop-subtitle">文件只在本机读取，不会上传到外部服务</div>
+          <div class="drop-requirements">需要列：Video ID · Video Link · Duration · Daily budget · Objective</div>
+        </div>
+      </label>
+      <input id="file-input" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+      <div class="notice" id="notice" role="status"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="M12 11v5m0-8h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span id="notice-text"></span><a id="server-link" href="http://127.0.0.1:8765/" hidden>用网页服务打开</a></div>
+      <div class="table-wrap" id="table-wrap">
+        <div class="summary-row">
+          <div class="file-chip"><svg viewBox="0 0 24 24" fill="none"><path d="M7 3.8h6.5L19 9v10.2a1 1 0 0 1-1 1H7a2 2 0 0 1-2-2V5.8a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.5"/><path d="M13 4v5h5M8 13h8m-8 3h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span id="file-name">—</span></div>
+          <div class="count" id="row-count">0 条素材</div>
+        </div>
+        <section class="scan-panel" id="scan-panel" aria-label="Shopee 视频识别">
+          <div class="scan-top">
+            <div>
+              <div class="scan-title">Shopee Seller 视频识别与投广</div>
+              <div class="scan-help">逐条执行：识别当前视频 → 若为目标，立即点击视频上的 More / Promote → 等待 5 秒打开分享菜单，再点击菜单左下方橙色 Promote → 进入投广页，按 Excel 选择 Duration、Daily Budget、Objective 并点击 Publish → 读取弹窗并保存结果 → 返回视频页 → 切换并识别下一条。每条目标视频完成投广处理后才继续；非目标视频直接继续。浏览器读取地址最多等待 100 秒。</div>
+              <div class="scan-help" id="gmv-warning" hidden style="margin-top:10px;color:#9a4c16">Shopee 页面提示：发布 GMV Max 会停止其他正在投放的视频广告。当前清单包含 GMV Max，请在开始前确认这一影响。</div>
+            </div>
+            <button class="button" id="export-button" type="button">导出识别记录 CSV</button>
+          </div>
+          <div class="scan-counters">
+            <span class="counter">本轮目标 <strong id="target-count">0</strong></span>
+            <span class="counter">已匹配 <strong id="matched-count">0</strong></span>
+            <span class="counter">历史记录 <strong id="traversed-count">0</strong></span>
+            <span class="counter">非目标 <strong id="unmatched-count">0</strong></span>
+            <span class="counter">已跳过 <strong id="skipped-count">0</strong></span>
+            <span class="counter">本轮复用 <strong id="cached-count">0</strong></span>
+            <span class="counter">投广成功 <strong id="ad-success-count">0</strong></span>
+            <span class="counter">投广失败 <strong id="ad-failed-count">0</strong></span>
+            <span class="counter">待确认 <strong id="ad-unknown-count">0</strong></span>
+          </div>
+          <div class="scan-status" id="scan-status">上传清单后即可开始。复制、浏览器跳转、代码比对与记录会自动完成。</div>
+          <div id="recovery-controls" hidden><div class="scan-input-row">
+            <input class="scan-input" id="scan-link-input" type="url" placeholder="可选：补充当前视频的 Shopee 链接，再重试" autocomplete="off">
+            <div class="scan-actions"><button class="button primary" id="record-link-button" type="button" disabled>重试当前视频</button><button class="button" id="skip-button" type="button">跳过当前视频</button></div>
+          </div>
+          </div>
+          <div class="scan-hint">本轮只匹配并投广勾选的视频；未勾选的视频仍保留在清单中。每次重新点击“开始识别并投广”，已成功的勾选视频也会再次投广。“结果待确认”可手动标记成功或失败；未确认或待审核的提交暂不自动重复，明确失败可重试。所有本轮目标处理后结束，否则继续到列表末尾，最后返回 Shopee Seller APP 主页。</div>
+        </section>
+        <div class="record-tabs" role="tablist" aria-label="视频记录">
+          <button class="record-tab" id="target-tab" type="button" role="tab" aria-controls="target-panel" aria-selected="true">目标视频列表</button>
+          <button class="record-tab" id="history-tab" type="button" role="tab" aria-controls="history-panel" aria-selected="false">系统遍历记录 <span id="history-tab-count">0</span></button>
+        </div>
+        <section class="record-panel" id="target-panel" role="tabpanel" aria-labelledby="target-tab">
+          <div class="selection-bar"><label class="select-all-label"><input class="row-checkbox" id="select-all-rows" type="checkbox">全选可识别视频</label><span id="selected-count">已选 0 条 / 共 0 条</span></div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th class="select-cell">选择</th><th>Video ID</th><th>Video Link</th><th>Video code</th><th>Duration</th><th>Daily budget</th><th>Objective</th><th>识别状态</th><th>投广结果</th></tr></thead>
+            <tbody id="table-body"></tbody>
+          </table>
+          <div class="empty-state" id="empty-state">还没有待识别的视频。</div>
+        </div>
+        </section>
+        <section class="record-panel" id="history-panel" role="tabpanel" aria-labelledby="history-tab" hidden>
+        <div class="subtable-heading"><span>系统遍历记录</span><div class="actions"><span class="count" id="history-count">0 条</span><button class="button" id="clear-history-button" type="button" disabled>清空历史记录</button></div></div>
+        <div class="history-scroll" id="history-scroll"><div class="scan-empty" id="scan-empty">尚无遍历结果。开始识别后，这里会自动更新每条视频的处理结果。</div><table hidden id="history-table"><thead><tr><th>序号</th><th>扫描 Video code</th><th>匹配的 Video ID</th><th>识别结果</th><th>原始 Copy Link</th><th>浏览器最终地址</th><th>时间 / 说明</th><th>投广参数</th><th>投广结果</th><th>弹窗原文 / 投广说明</th></tr></thead><tbody id="history-body"></tbody></table></div>
+        </section>
+      </div>
+    </section>
+    <div class="footer-note"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3 3.8 7v5.2c0 4.6 3.2 7.6 8.2 9.3 5-1.7 8.2-4.7 8.2-9.3V7L12 3Z" stroke="currentColor" stroke-width="1.5"/><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>打开视频可能会被平台记录为浏览。Excel 清单和识别结果保存在本机及浏览器，可导出 CSV。识别时仅在 Chrome 打开 Shopee 视频链接。</span></div>
+  </main>
+</div>
+<script>
+  const fileInput = document.getElementById('file-input');
+  const dropzone = document.getElementById('dropzone');
+  const notice = document.getElementById('notice');
+  const noticeText = document.getElementById('notice-text');
+  const serverLink = document.getElementById('server-link');
+  const tableWrap = document.getElementById('table-wrap');
+  const tableBody = document.getElementById('table-body');
+  const scanStartButton = document.getElementById('scan-start-button');
+  const scanStopButton = document.getElementById('scan-stop-button');
+  const recordLinkButton = document.getElementById('record-link-button');
+  const scanLinkInput = document.getElementById('scan-link-input');
+  const historyBody = document.getElementById('history-body');
+  const clearHistoryButton = document.getElementById('clear-history-button');
+  const replaceButton = document.getElementById('replace-button');
+  const scanPanel = document.getElementById('scan-panel');
+  const selectAllRows = document.getElementById('select-all-rows');
+  const state = { records: [], selectedRowNumbers: [], selectionDirty: false, activeTab: 'target', file: '', scanned: [], promotionResults: {}, cachedSkips: 0, runId: '', historyRunId: '', newUpload: false, connected: false, scanRunning: false, scanPhase: 'idle', completionReason: '', allowRetry: true, polling: false, starting: false, clearingHistory: false, savingPromotion: '', activePromotionCode: '', requestGeneration: 0, revision: -1 };
+  const recoveryControls = document.getElementById('recovery-controls');
+  const skipButton = document.getElementById('skip-button');
+  const STORAGE_KEY = 'video-link-qa-session-v2';
+
+  function showNotice(message, isError = false) {
+    notice.classList.add('visible');
+    notice.classList.toggle('error', isError);
+    noticeText.textContent = message;
+    serverLink.hidden = location.protocol !== 'file:';
+  }
+  function clearNotice() { notice.classList.remove('visible', 'error'); noticeText.textContent = ''; serverLink.hidden = true; }
+  function showFileProtocolWarning() {
+    showNotice('当前是 file:// 文件模式，无法连接本地解析服务。请使用右侧链接打开网页服务。', true);
+  }
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  }
+  function isCompleted(item) {
+    return Boolean(item.code) && ['目标视频', '非目标', '已完成'].includes(item.status);
+  }
+  const promotionCache = { scanned: null, results: null, lookup: new Map() };
+  function promotionFor(code) {
+    if (promotionCache.scanned !== state.scanned || promotionCache.results !== state.promotionResults) {
+      promotionCache.lookup = new Map(state.scanned.filter(item => item.code && item.promotion).map(item => [item.code, item.promotion]));
+      promotionCache.scanned = state.scanned;
+      promotionCache.results = state.promotionResults;
+    }
+    return state.promotionResults[code] || promotionCache.lookup.get(code) || {};
+  }
+  function rowKey(row) { return String(row.row_number); }
+  function selectedRows() {
+    const keys = new Set(state.selectedRowNumbers);
+    return state.records.filter(row => row.expected_code && keys.has(rowKey(row)));
+  }
+  function setActiveTab(name) {
+    state.activeTab = name === 'history' ? 'history' : 'target';
+    for (const tabName of ['target', 'history']) {
+      const active = tabName === state.activeTab;
+      const tab = document.getElementById(`${tabName}-tab`);
+      tab.setAttribute('aria-selected', String(active));
+      tab.tabIndex = active ? 0 : -1;
+      document.getElementById(`${tabName}-panel`).hidden = !active;
+    }
+    if (state.activeTab === 'history') renderHistory();
+    else historyBody.replaceChildren();
+    updateButtons();
+    persistSession();
+  }
+  function adBadge(receipt, fallback = '—', code = receipt.video_code || '') {
+    const status = receipt.status || fallback;
+    const style = status === '发布成功' ? 'match' : status === '发布失败' ? 'error' : '';
+    let badge = `<span class="status ${style}">${escapeHtml(status)}</span>`;
+    if (receipt.manual_confirmation) badge += `<div class="ad-manual">人工确认 · ${escapeHtml(receipt.manual_confirmation.confirmed_at)}</div>`;
+    if (status === '结果待确认') {
+      return `${badge}<div class="ad-confirm-actions">
+        <button class="button ad-confirm-success" type="button" data-ad-confirm="发布成功" data-code="${escapeHtml(code)}" data-operation-id="${escapeHtml(receipt.operation_id || '')}" aria-label="将视频 ${escapeHtml(code)} 标记为发布成功">标记成功</button>
+        <button class="button ad-confirm-failure" type="button" data-ad-confirm="发布失败" data-code="${escapeHtml(code)}" data-operation-id="${escapeHtml(receipt.operation_id || '')}" aria-label="将视频 ${escapeHtml(code)} 标记为发布失败">标记失败</button>
+      </div>`;
+    }
+    if (status !== '发布失败') return badge;
+    const reason = failureReason(receipt);
+    return `${badge}<div class="ad-failure"><span class="ad-failure-label">失败原因：</span>${escapeHtml(reason)}</div>`;
+  }
+  function failureReason(receipt) {
+    if (receipt.manual_confirmation?.status === '发布失败') return '用户手动确认发布失败。';
+    const lines = [receipt.popup_text, receipt.error].filter(Boolean).flatMap(value => String(value).split(/\r?\n/).map(line => line.trim()).filter(Boolean));
+    const reason = lines.find(line => /not enough|insufficient|fail(?:ed|ure)?|error|unable|reject(?:ed)?|cannot|balance|top up|失败|不足|无法/i.test(line));
+    return reason || lines[0] || '未记录到具体失败原因。';
+  }
+  function adParameters(receipt) {
+    const params = receipt.parameters || {};
+    return params.duration ? `${params.duration} · RM${params.daily_budget}/天 · ${params.objective}` : '—';
+  }
+  function adDetails(receipt) {
+    const manual = receipt.manual_confirmation;
+    const automatic = receipt.automatic_result;
+    const previous = (receipt.previous_attempts || []).filter(item => item.manual_confirmation).map(item => `第 ${item.attempts || 1} 次投广：人工确认${item.manual_confirmation.status}（${item.manual_confirmation.confirmed_at}）`).join('\n');
+    return [manual ? `人工确认：${manual.status} · ${manual.confirmed_at}` : '', automatic ? `原自动判定：${automatic.status}${automatic.error && receipt.status !== '发布失败' ? '；' + automatic.error : ''}` : '', receipt.status === '发布失败' ? '' : receipt.popup_text, receipt.status === '发布失败' ? '' : receipt.error && receipt.error !== receipt.popup_text ? receipt.error : '', receipt.popup_source ? `弹窗来源：${receipt.popup_source}` : '', receipt.popup_capture_error ? `弹窗读取：${receipt.popup_capture_error}` : '', receipt.budget_observed ? `日预算回读：${receipt.budget_observed}` : '', receipt.return_error ? `回退：${receipt.return_error}` : '', previous, receipt.finished_at].filter(Boolean).join('\n');
+  }
+  function uniqueHistory(entries) {
+    const result = [], positions = new Map();
+    for (const item of entries) {
+      const key = String(item.copied_link || item.link || '').trim();
+      if (!key || !positions.has(key)) {
+        if (key) positions.set(key, result.length);
+        result.push(item);
+      } else if (!isCompleted(result[positions.get(key)])) {
+        result[positions.get(key)] = item;
+      }
+    }
+    return result;
+  }
+  function persistSession() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ records: state.records, selectedRowNumbers: state.selectedRowNumbers, selectionDirty: state.selectionDirty, activeTab: state.activeTab, file: state.file, scanned: state.scanned, promotionResults: state.promotionResults, cachedSkips: state.cachedSkips, runId: state.runId, newUpload: state.newUpload, completionReason: state.completionReason })); }
+    catch (_) { showNotice('本机浏览器存储空间不足，请导出当前记录后继续。', true); }
+  }
+  function restoreSession() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+      if (saved && Array.isArray(saved.records)) {
+        state.records = saved.records;
+        state.selectedRowNumbers = Array.isArray(saved.selectedRowNumbers) ? saved.selectedRowNumbers.map(String) : saved.records.filter(row => row.expected_code).map(rowKey);
+        state.selectionDirty = Boolean(saved.selectionDirty);
+        state.activeTab = saved.activeTab === 'history' ? 'history' : 'target';
+        state.file = String(saved.file || '');
+        state.runId = String(saved.runId || '');
+        state.newUpload = Boolean(saved.newUpload);
+        state.completionReason = String(saved.completionReason || '');
+        state.scanned = uniqueHistory(Array.isArray(saved.scanned) ? saved.scanned : []);
+        state.cachedSkips = Number(saved.cachedSkips || 0);
+        state.promotionResults = saved.promotionResults || {};
+      }
+    } catch (_) { /* ignore a damaged local session */ }
+  }
+  function targetStatus(row, matched) {
+    if (!state.selectedRowNumbers.includes(rowKey(row)) && row.expected_code) return '未选中';
+    if (!row.expected_code) return '代码缺失';
+    if (matched) return '已匹配';
+    return state.completionReason === 'list_exhausted' ? '未匹配' : '待匹配';
+  }
+  function renderRows() {
+    const selected = new Set(state.selectedRowNumbers);
+    const activeRows = selectedRows();
+    const completedCodes = new Set(state.scanned.filter(isCompleted).map(item => item.code));
+    tableBody.innerHTML = state.records.map(record => {
+      const link = record.video_link || '';
+      const errors = record.errors?.length ? ` title="${escapeHtml(record.errors.join('、'))}"` : '';
+      const checked = selected.has(rowKey(record));
+      const matched = Boolean(checked && record.expected_code && completedCodes.has(record.expected_code));
+      const recognition = targetStatus(record, matched);
+      const receipt = promotionFor(record.expected_code);
+      return `<tr class="${checked ? '' : 'unselected-row'}">
+        <td class="select-cell"><input class="row-checkbox" data-row-select="${escapeHtml(rowKey(record))}" type="checkbox" aria-label="选择视频 ${escapeHtml(record.video_id || record.row_number)}" ${checked ? 'checked' : ''} ${record.expected_code ? '' : 'disabled'}></td>
+        <td class="id-cell">${escapeHtml(record.video_id || '—')}${record.duplicate_id ? '<span class="duplicate" title="Video ID 重复">重复</span>' : ''}</td>
+        <td>${link ? (record.valid ? `<a class="link-cell" href="${escapeHtml(link)}" target="_blank" rel="noreferrer">${escapeHtml(link)}</a>` : `<span class="muted-cell">${escapeHtml(link)}</span>`) : '<span class="muted-cell">缺少链接</span>'}</td>
+        <td class="code-cell">${escapeHtml(record.expected_code || '—')}</td>
+        <td class="muted-cell">${escapeHtml(record.duration || '—')}</td>
+        <td class="muted-cell">${escapeHtml(record.daily_budget || '—')}</td>
+        <td class="muted-cell">${escapeHtml(record.objective || '—')}</td>
+        <td${errors}><span class="status ${matched ? 'match' : (!record.expected_code ? 'error' : '')}">${recognition}</span></td>
+        <td>${adBadge(receipt, checked ? (matched ? '待投广' : '待识别') : '未选中', record.expected_code)}${checked && receipt.status === '发布成功' && !state.scanRunning ? '<div class="ad-manual">下次启动仍将重新投广</div>' : ''}</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('row-count').textContent = `已选 ${activeRows.length} / 共 ${state.records.length} 条`;
+    document.getElementById('selected-count').textContent = `已选 ${activeRows.length} 条 / 共 ${state.records.length} 条`;
+    document.getElementById('file-name').textContent = state.file;
+    document.getElementById('gmv-warning').hidden = !activeRows.some(row => String(row.objective || '').trim().toLowerCase() === 'gmv max');
+    document.getElementById('empty-state').classList.toggle('visible', state.records.length === 0);
+    tableWrap.classList.toggle('visible', state.records.length > 0);
+    scanPanel.classList.toggle('visible', state.records.length > 0);
+    dropzone.style.display = state.records.length ? 'none' : '';
+    renderHistory();
+    updateButtons();
+  }
+  function renderHistory() {
+    const activeRows = selectedRows();
+    const matchedCodes = new Set(state.scanned.filter(isCompleted).map(item => item.code));
+    const matchedTargets = activeRows.filter(row => matchedCodes.has(row.expected_code)).length;
+    const targetCodes = new Set(activeRows.map(row => row.expected_code));
+    const selectedIds = new Map();
+    for (const row of activeRows) selectedIds.set(row.expected_code, [...(selectedIds.get(row.expected_code) || []), row.video_id]);
+    const unmatched = state.scanned.filter(item => isCompleted(item) && !targetCodes.has(item.code)).length;
+    document.getElementById('target-count').textContent = String(activeRows.length);
+    document.getElementById('matched-count').textContent = String(matchedTargets);
+    document.getElementById('traversed-count').textContent = String(state.scanned.length);
+    document.getElementById('unmatched-count').textContent = String(unmatched);
+    document.getElementById('skipped-count').textContent = String(state.scanned.filter(item => (item.status || '').includes('已跳过')).length);
+    document.getElementById('cached-count').textContent = String(state.cachedSkips);
+    const adStatuses = [...targetCodes].map(code => promotionFor(code).status);
+    document.getElementById('ad-success-count').textContent = String(adStatuses.filter(value => value === '发布成功').length);
+    document.getElementById('ad-failed-count').textContent = String(adStatuses.filter(value => value === '发布失败').length);
+    document.getElementById('ad-unknown-count').textContent = String(adStatuses.filter(value => value === '结果待确认').length);
+    document.getElementById('history-count').textContent = `${state.scanned.length} 条`;
+    document.getElementById('history-tab-count').textContent = state.scanned.length;
+    document.getElementById('scan-empty').hidden = state.scanned.length > 0;
+    document.getElementById('history-table').hidden = state.scanned.length === 0;
+    if (state.activeTab !== 'history') return;
+    historyBody.innerHTML = state.scanned.map(item => {
+      const currentStatus = isCompleted(item) ? (targetCodes.has(item.code) ? '目标视频' : '非本轮目标') : item.status || '处理中';
+      return `<tr>
+      <td>${escapeHtml(item.sequence)}</td>
+      <td class="code-cell">${escapeHtml(item.code || '—')}</td>
+      <td>${escapeHtml(selectedIds.get(item.code)?.join('、') || '—')}</td>
+      <td><span class="status ${currentStatus === '目标视频' ? 'match' : (currentStatus === '非本轮目标' ? 'unmatched' : 'error')}">${escapeHtml(currentStatus)}${item.duplicate ? ' · 同视频代码' : ''}</span></td>
+      <td>${renderLink(item.copied_link || item.link)}</td>
+      <td>${renderLink(item.final_link)}</td>
+      <td class="muted-cell">${escapeHtml(item.error || item.recorded_at || '处理中…')}${item.share_button ? `<br>入口：${escapeHtml(item.share_button)}` : ''}${item.attempts > 1 ? `<br>已尝试 ${escapeHtml(item.attempts)} 次` : ''}</td>
+      <td class="muted-cell">${escapeHtml(adParameters(promotionFor(item.code)))}</td>
+      <td>${adBadge(promotionFor(item.code), '—', item.code)}</td>
+      <td class="muted-cell" style="white-space:pre-line;min-width:220px">${escapeHtml(adDetails(promotionFor(item.code)) || '—')}</td>
+    </tr>`;
+    }).join('');
+  }
+  function renderLink(link) {
+    if (!link) return '<span class="muted-cell">—</span>';
+    try {
+      const url = new URL(link);
+      if (!['http:', 'https:'].includes(url.protocol)) return escapeHtml(link);
+      return `<a class="result-link" href="${escapeHtml(link)}" target="_blank" rel="noreferrer" title="${escapeHtml(link)}">${escapeHtml(link)}</a>`;
+    } catch (_) { return escapeHtml(link); }
+  }
+  function updateButtons() {
+    const selectable = state.records.filter(row => row.expected_code);
+    const selectableKeys = new Set(selectable.map(rowKey));
+    const selected = new Set(state.selectedRowNumbers);
+    scanStartButton.disabled = !selectable.some(row => selected.has(rowKey(row))) || !state.connected || state.scanRunning || state.starting || state.clearingHistory || Boolean(state.savingPromotion);
+    scanStartButton.title = !selectable.some(row => selected.has(rowKey(row))) ? '请先在目标视频列表中勾选至少一条视频' : '';
+    scanStartButton.hidden = state.scanRunning;
+    scanStopButton.hidden = !state.scanRunning;
+    scanStopButton.disabled = state.scanPhase === 'stopping';
+    scanStopButton.textContent = state.scanPhase === 'stopping' ? '正在停止…' : '停止识别';
+    const waiting = state.scanRunning && state.scanPhase === 'awaiting_action';
+    recoveryControls.hidden = !waiting;
+    scanLinkInput.hidden = !state.allowRetry;
+    recordLinkButton.hidden = !state.allowRetry;
+    recordLinkButton.disabled = !waiting;
+    recordLinkButton.textContent = scanLinkInput.value.trim() ? '用此链接重试' : '重试当前视频';
+    skipButton.disabled = !waiting;
+    skipButton.textContent = state.allowRetry ? '跳过当前视频' : '继续下一条';
+    replaceButton.hidden = !state.records.length || state.scanRunning || state.starting || state.clearingHistory || Boolean(state.savingPromotion);
+    fileInput.disabled = state.scanRunning || state.starting || state.clearingHistory || Boolean(state.savingPromotion);
+    clearHistoryButton.disabled = !state.scanned.length || state.scanRunning || state.starting || state.clearingHistory || Boolean(state.savingPromotion);
+    clearHistoryButton.textContent = state.clearingHistory ? '正在清空…' : '清空历史记录';
+    clearHistoryButton.title = state.scanRunning ? '请先停止识别，再清空历史记录' : '清空识别历史，保留 Excel 和投广提交凭据，避免重复发布';
+    const selectionLocked = state.scanRunning || state.starting || state.clearingHistory || Boolean(state.savingPromotion);
+    selectAllRows.disabled = selectionLocked || !selectable.length;
+    selectAllRows.checked = selectable.length > 0 && selectable.every(row => selected.has(rowKey(row)));
+    selectAllRows.indeterminate = !selectAllRows.checked && selectable.some(row => selected.has(rowKey(row)));
+    for (const checkbox of tableBody.querySelectorAll('[data-row-select]')) {
+      checkbox.disabled = selectionLocked || !selectableKeys.has(checkbox.dataset.rowSelect);
+    }
+    for (const button of document.querySelectorAll('[data-ad-confirm]')) {
+      const active = state.activePromotionCode === button.dataset.code;
+      button.disabled = Boolean(state.savingPromotion) || state.starting || state.clearingHistory || active || !button.dataset.operationId || !button.dataset.code || location.protocol === 'file:';
+      button.title = active ? '此视频仍在处理，返回视频页后可确认' : state.savingPromotion ? '正在保存确认结果…' : button.dataset.adConfirm === '发布成功' ? '保存为成功；下轮若选中仍会重新投广' : '保存为失败，再次遍历到此视频时重新投广';
+    }
+  }
+  async function refreshDevice() {
+    try {
+      const response = await fetch('/api/device', { cache: 'no-store' });
+      const data = await response.json();
+      state.connected = data.connected;
+      document.getElementById('device-dot').classList.toggle('connected', state.connected);
+      const label = document.getElementById('device-label');
+      label.textContent = state.connected ? `模拟器已连接 · ${data.serial}` : (data.error || '等待 Android 模拟器');
+      updateButtons();
+    } catch (_) {
+      document.getElementById('device-label').textContent = '本地服务未连接';
+      state.connected = false;
+      updateButtons();
+    }
+  }
+  async function loadFile(file) {
+    clearNotice();
+    if (!file || state.scanRunning || state.starting || state.clearingHistory || state.savingPromotion) return;
+    if (location.protocol === 'file:') {
+      showFileProtocolWarning();
+      return;
+    }
+    const suffix = file.name.split('.').pop().toLowerCase();
+    if (!['csv', 'xlsx'].includes(suffix)) {
+      showNotice('请选择 .xlsx 或 .csv 文件。旧版 .xls 暂不支持。', true);
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      showNotice('文件超过 50 MB 限制。', true);
+      return;
+    }
+    try {
+      showNotice('正在读取文件…');
+      const response = await fetch(`/api/parse?name=${encodeURIComponent(file.name)}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: file
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || '文件读取失败。');
+      state.records = data.records;
+      state.selectedRowNumbers = data.records.filter(row => row.expected_code).map(rowKey);
+      state.selectionDirty = false;
+      state.file = file.name;
+      state.runId = '';
+      state.newUpload = true;
+      state.cachedSkips = 0;
+      state.completionReason = '';
+      setActiveTab('target');
+      persistSession();
+      const invalid = state.records.filter(row => !row.valid).length;
+      const duplicates = state.records.filter(row => row.duplicate_id).length;
+      renderRows();
+      if (invalid) showNotice(`已读取 ${data.count} 条素材；${invalid} 行缺少必需字段或链接格式无效，请将鼠标移到状态上查看问题。`, true);
+      else if (duplicates) showNotice(`已读取 ${data.count} 条素材；发现 ${duplicates} 个重复 Video ID，请核对清单。`);
+      else showNotice(`已读取 ${data.count} 条素材。所有必需字段齐全。`);
+    } catch (error) {
+      showNotice(error.message || '读取文件失败。', true);
+    }
+  }
+  fileInput.addEventListener('change', event => loadFile(event.target.files[0]));
+  replaceButton.addEventListener('click', () => fileInput.click());
+  for (const tabName of ['target', 'history']) {
+    const tab = document.getElementById(`${tabName}-tab`);
+    tab.addEventListener('click', () => setActiveTab(tabName));
+    tab.addEventListener('keydown', event => {
+      if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+      event.preventDefault();
+      const next = tabName === 'target' ? 'history' : 'target';
+      setActiveTab(next);
+      document.getElementById(`${next}-tab`).focus();
+    });
+  }
+  selectAllRows.addEventListener('change', () => {
+    if (selectAllRows.disabled) return;
+    state.selectedRowNumbers = selectAllRows.checked ? state.records.filter(row => row.expected_code).map(rowKey) : [];
+    state.selectionDirty = true;
+    persistSession();
+    renderRows();
+  });
+  tableBody.addEventListener('change', event => {
+    const checkbox = event.target.closest('[data-row-select]');
+    if (!checkbox || checkbox.disabled) return;
+    const selected = new Set(state.selectedRowNumbers);
+    if (checkbox.checked) selected.add(checkbox.dataset.rowSelect);
+    else selected.delete(checkbox.dataset.rowSelect);
+    state.selectedRowNumbers = [...selected];
+    state.selectionDirty = true;
+    persistSession();
+    renderRows();
+  });
+  for (const type of ['dragenter', 'dragover']) dropzone.addEventListener(type, event => { event.preventDefault(); dropzone.classList.add('dragging'); });
+  for (const type of ['dragleave', 'drop']) dropzone.addEventListener(type, event => { event.preventDefault(); dropzone.classList.remove('dragging'); });
+  dropzone.addEventListener('drop', event => loadFile(event.dataTransfer.files[0]));
+  scanStartButton.addEventListener('click', async () => {
+    clearNotice();
+    state.starting = true;
+    updateButtons();
+    try {
+      const response = await fetch('/api/scan/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rows: state.records, selected_row_numbers: state.selectedRowNumbers, file: state.file, promote: true }) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || '无法启动视频识别。');
+      state.runId = data.run_id;
+      state.selectionDirty = false;
+      state.revision = -1;
+      state.newUpload = false;
+      state.cachedSkips = 0;
+      state.scanRunning = true;
+      state.scanPhase = 'starting';
+      state.completionReason = '';
+      persistSession();
+      document.getElementById('scan-status').textContent = `已连接 ${data.serial} · 正在进入 Seller App 的 Shopee Video`;
+      await refreshScan();
+    } catch (error) { showNotice(error.message || '无法启动视频识别。', true); }
+    finally { state.starting = false; updateButtons(); }
+  });
+  scanStopButton.addEventListener('click', async () => {
+    scanStopButton.disabled = true;
+    try {
+      const response = await fetch('/api/scan/stop', { method: 'POST' });
+      if (!response.ok) throw new Error('停止请求失败，请重试。');
+      await refreshScan();
+    } catch (error) { showNotice(error.message, true); updateButtons(); }
+  });
+  scanLinkInput.addEventListener('input', updateButtons);
+  scanLinkInput.addEventListener('keydown', event => { if (event.key === 'Enter' && !recordLinkButton.disabled) recordLinkButton.click(); });
+  async function resumeScan(mode) {
+    recordLinkButton.disabled = true;
+    skipButton.disabled = true;
+    try {
+      const response = await fetch('/api/scan/resume', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode, link: mode === 'retry' ? scanLinkInput.value.trim() : '' }) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || '无法继续识别。');
+      scanLinkInput.value = '';
+      await refreshScan();
+    } catch (error) { showNotice(error.message, true); updateButtons(); }
+  }
+  recordLinkButton.addEventListener('click', () => resumeScan('retry'));
+  skipButton.addEventListener('click', () => resumeScan('skip'));
+  clearHistoryButton.addEventListener('click', async () => {
+    if (clearHistoryButton.disabled) return;
+    state.clearingHistory = true;
+    state.requestGeneration += 1;
+    updateButtons();
+    try {
+      const response = await fetch('/api/scan/clear', { method: 'POST' });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || '清空失败，请重试。');
+      state.scanned = [];
+      state.cachedSkips = 0;
+      state.scanRunning = false;
+      state.scanPhase = 'idle';
+      state.completionReason = '';
+      if (data.scan?.run_id === state.runId) state.revision = data.scan.revision;
+      scanLinkInput.value = '';
+      persistSession();
+      renderRows();
+      document.getElementById('scan-status').textContent = '历史遍历记录已清空，可以重新开始识别。';
+      showNotice('历史遍历记录已清空，已保留 Excel 清单及投广提交凭据。');
+    } catch (error) { showNotice(error.message || '清空失败，请重试。', true); }
+    finally { state.clearingHistory = false; updateButtons(); }
+  });
+  async function confirmPromotion(event) {
+    const button = event.target.closest('[data-ad-confirm]');
+    if (!button || button.disabled || state.savingPromotion) return;
+    const code = button.dataset.code;
+    const status = button.dataset.adConfirm;
+    const operationId = button.dataset.operationId;
+    state.savingPromotion = code;
+    state.requestGeneration += 1;
+    updateButtons();
+    showNotice('正在保存人工确认结果…');
+    try {
+      const response = await fetch('/api/promotion/confirm', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ video_code: code, operation_id: operationId, status })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || '确认结果保存失败，请重试。');
+      const scan = data.scan;
+      state.scanned = uniqueHistory(scan.scanned || []);
+      state.promotionResults = scan.promotion_results || {};
+      state.scanRunning = Boolean(scan.running);
+      state.scanPhase = scan.phase || 'idle';
+      state.activePromotionCode = scan.active_promotion_code || '';
+      persistSession();
+      renderRows();
+      document.getElementById('scan-status').textContent = scan.message || '结果已保存。';
+      showNotice(status === '发布成功' ? '已人工确认发布成功；若下轮再次选中，会重新投广。' : '已人工确认发布失败，再次遍历到此视频时会重新投广。');
+    } catch (error) {
+      showNotice(error.message || '确认结果保存失败，请重试。', true);
+    } finally {
+      state.savingPromotion = '';
+      state.revision = -1;
+      updateButtons();
+      refreshScan();
+    }
+  }
+  tableBody.addEventListener('click', confirmPromotion);
+  historyBody.addEventListener('click', confirmPromotion);
+  document.getElementById('export-button').addEventListener('click', () => {
+    const quote = value => {
+      let text = String(value ?? '');
+      if (/^[=+@\-\t\r]/.test(text)) text = "'" + text;
+      return `"${text.replace(/"/g, '""')}"`;
+    };
+    const adCells = receipt => [receipt.status || '', receipt.parameters?.duration || '', receipt.parameters?.daily_budget || '', receipt.parameters?.objective || '', receipt.popup_text || '', receipt.error || '', receipt.return_error || '', receipt.published_at || '', receipt.finished_at || '', receipt.attempts || '', receipt.budget_observed || '', receipt.manual_confirmation?.status || '', receipt.manual_confirmation?.confirmed_at || '', receipt.automatic_result?.status || '', receipt.automatic_result?.error || '', receipt.previous_attempts?.length ? JSON.stringify(receipt.previous_attempts) : ''];
+    const lines = [['记录类型', '序号/Excel行', 'Video ID', '本轮选中', 'Video Link/Copy Link', '浏览器最终地址', 'Video code', 'Duration', 'Daily budget', 'Objective', '匹配Video ID', '匹配Excel行', '识别结果', '时间', '错误说明', '尝试次数', '投广结果', '投广Duration', '投广Daily budget', '投广Objective', '投广弹窗原文', '投广错误', '回退错误', 'Publish时间', '投广结束时间', '投广尝试次数', '日预算实际回读', '人工确认结果', '人工确认时间', '原自动判定', '原自动说明', '历史投广尝试']];
+    const selected = new Set(state.selectedRowNumbers);
+    const activeRows = selectedRows();
+    const completedCodes = new Set(state.scanned.filter(isCompleted).map(item => item.code));
+    const activeMatches = new Map();
+    for (const row of activeRows) activeMatches.set(row.expected_code, [...(activeMatches.get(row.expected_code) || []), row]);
+    for (const row of state.records) {
+      const matched = Boolean(selected.has(rowKey(row)) && row.expected_code && completedCodes.has(row.expected_code));
+      lines.push(['Excel', row.row_number, row.video_id, selected.has(rowKey(row)) ? '是' : '否', row.video_link, '', row.expected_code, row.duration, row.daily_budget, row.objective, matched ? row.video_id : '', matched ? row.row_number : '', targetStatus(row, matched), '', (row.errors || []).join('；'), '', ...adCells(promotionFor(row.expected_code))]);
+    }
+    for (const item of state.scanned) {
+      const matches = activeMatches.get(item.code) || [];
+      const status = isCompleted(item) ? (matches.length ? '目标视频' : '非本轮目标') : item.status;
+      lines.push(['系统遍历', item.sequence, '', '', item.copied_link || item.link, item.final_link || '', item.code, '', '', '', matches.map(row => row.video_id).join('、'), matches.map(row => row.row_number).join('、'), status + (item.duplicate ? ' · 同视频代码' : ''), item.recorded_at || '', (item.errors || [item.error]).filter(Boolean).join('；'), item.attempts || 1, ...adCells(promotionFor(item.code))]);
+    }
+    const csv = '\uFEFF' + lines.map(row => row.map(quote).join(',')).join('\r\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const anchor = document.createElement('a');
+    anchor.href = url; anchor.download = `${(state.file || 'video-recognition').replace(/\.[^.]+$/, '')}-识别记录.csv`; anchor.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+  async function refreshScan() {
+    if (state.polling || state.clearingHistory || state.savingPromotion || location.protocol === 'file:') return;
+    state.polling = true;
+    const generation = state.requestGeneration;
+    try {
+      const response = await fetch('/api/scan/status', { cache: 'no-store' });
+      if (!response.ok) throw new Error('无法读取识别状态。');
+      const scan = await response.json();
+      // Ignore a response requested before a history clear or manual confirmation.
+      if (generation !== state.requestGeneration || state.clearingHistory || state.savingPromotion) return;
+      state.scanRunning = Boolean(scan.running);
+      state.scanPhase = scan.phase || 'idle';
+      state.activePromotionCode = scan.active_promotion_code || '';
+      state.allowRetry = scan.allow_retry !== false;
+      const adopt = scan.run_id && (scan.run_id === state.runId || !state.records.length || (scan.running && !state.newUpload));
+      if (adopt && (state.runId !== scan.run_id || state.revision !== scan.revision)) {
+        state.revision = scan.revision;
+        state.historyRunId = scan.run_id;
+        state.runId = scan.run_id;
+        state.newUpload = false;
+        state.records = scan.rows || state.records;
+        if (scan.running || !state.selectionDirty) {
+          state.selectedRowNumbers = Array.isArray(scan.selected_row_numbers) ? scan.selected_row_numbers.map(String) : state.records.filter(row => row.expected_code).map(rowKey);
+          state.selectionDirty = false;
+        }
+        state.file = scan.file || state.file;
+        state.scanned = uniqueHistory(scan.scanned || []);
+        state.promotionResults = scan.promotion_results || {};
+        state.cachedSkips = Number(scan.cached_skips || 0);
+        state.completionReason = scan.completion_reason || '';
+        persistSession();
+        renderRows();
+      } else if (!adopt && (state.historyRunId !== scan.run_id || state.revision !== scan.revision)) {
+        // History is shared across uploads; keep the newly uploaded Excel rows.
+        state.historyRunId = scan.run_id;
+        state.revision = scan.revision;
+        state.scanned = uniqueHistory(scan.scanned || []);
+        state.promotionResults = scan.promotion_results || {};
+        state.cachedSkips = state.newUpload ? 0 : Number(scan.cached_skips || 0);
+        persistSession();
+        renderRows();
+      }
+      document.getElementById('scan-status').textContent = adopt || scan.running ? (scan.message || '等待识别') : '上传清单后，点击开始识别并投广。';
+      updateButtons();
+    } catch (_) {
+      if (generation !== state.requestGeneration || state.clearingHistory || state.savingPromotion) return;
+      document.getElementById('scan-status').textContent = '暂时无法连接本地服务，已显示的记录仍保留；恢复连接后会自动同步。';
+    } finally { state.polling = false; }
+  }
+  restoreSession();
+  setActiveTab(state.activeTab);
+  renderRows();
+  if (location.protocol === 'file:') showFileProtocolWarning();
+  if (location.protocol !== 'file:') {
+    refreshDevice();
+    setInterval(refreshDevice, 5000);
+    refreshScan();
+    setInterval(refreshScan, 900);
+  }
+</script>
+</body>
+</html>

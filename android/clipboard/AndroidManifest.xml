@@ -1,0 +1,8 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="local.videoqa.clipboard">
+    <uses-sdk android:minSdkVersion="33" android:targetSdkVersion="35" />
+    <application android:label="视频链接读取" android:debuggable="true" android:allowBackup="false"
+        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        <activity android:name=".ClipboardActivity" android:exported="true"
+            android:excludeFromRecents="true" android:finishOnTaskLaunch="true" />
+    </application>
+</manifest>
