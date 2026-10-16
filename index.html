@@ -194,7 +194,7 @@
         </div>
       </label>
       <input id="file-input" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
-      <div class="notice" id="notice" role="status"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="M12 11v5m0-8h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span id="notice-text"></span><a id="server-link" href="http://127.0.0.1:8765/" hidden>用网页服务打开</a></div>
+      <div class="notice" id="notice" role="status"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="M12 11v5m0-8h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span id="notice-text"></span><a id="server-link" href="http://127.0.0.1:8765/" hidden>打开本机工具</a></div>
       <div class="table-wrap" id="table-wrap">
         <div class="summary-row">
           <div class="file-chip"><svg viewBox="0 0 24 24" fill="none"><path d="M7 3.8h6.5L19 9v10.2a1 1 0 0 1-1 1H7a2 2 0 0 1-2-2V5.8a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.5"/><path d="M13 4v5h5M8 13h8m-8 3h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span id="file-name">—</span></div>
@@ -272,16 +272,24 @@
   const recoveryControls = document.getElementById('recovery-controls');
   const skipButton = document.getElementById('skip-button');
   const STORAGE_KEY = 'video-link-qa-session-v2';
+  const localService = location.protocol === 'http:' && ['127.0.0.1', 'localhost'].includes(location.hostname) && location.port === '8765';
 
   function showNotice(message, isError = false) {
     notice.classList.add('visible');
     notice.classList.toggle('error', isError);
     noticeText.textContent = message;
-    serverLink.hidden = location.protocol !== 'file:';
+    serverLink.hidden = localService;
   }
   function clearNotice() { notice.classList.remove('visible', 'error'); noticeText.textContent = ''; serverLink.hidden = true; }
-  function showFileProtocolWarning() {
-    showNotice('当前是 file:// 文件模式，无法连接本地解析服务。请使用右侧链接打开网页服务。', true);
+  function showLocalServiceWarning() {
+    const source = location.protocol === 'file:' ? '本地文件' : 'GitHub Pages 等静态网页';
+    showNotice(`当前打开的是${source}，无法调用本机 Excel 解析和模拟器接口。请在运行模拟器的 Mac 上启动 python3 app.py，再点击“打开本机工具”。`, true);
+  }
+  async function readApiJson(response) {
+    if (!/^application\/json\b/i.test(response.headers.get('content-type') || '')) {
+      throw new Error('接口返回了网页而不是 JSON。请确认已启动 python3 app.py，并通过 http://127.0.0.1:8765/ 打开本机工具。');
+    }
+    return response.json();
   }
   function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
@@ -502,14 +510,14 @@
     }
     for (const button of document.querySelectorAll('[data-ad-confirm]')) {
       const active = state.activePromotionCode === button.dataset.code;
-      button.disabled = Boolean(state.savingPromotion) || state.starting || state.clearingHistory || active || !button.dataset.operationId || !button.dataset.code || location.protocol === 'file:';
+      button.disabled = Boolean(state.savingPromotion) || state.starting || state.clearingHistory || active || !button.dataset.operationId || !button.dataset.code || !localService;
       button.title = active ? '此视频仍在处理，返回视频页后可确认' : state.savingPromotion ? '正在保存确认结果…' : button.dataset.adConfirm === '发布成功' ? '保存为成功；下轮若选中仍会重新投广' : '保存为失败，再次遍历到此视频时重新投广';
     }
   }
   async function refreshDevice() {
     try {
       const response = await fetch('/api/device', { cache: 'no-store' });
-      const data = await response.json();
+      const data = await readApiJson(response);
       state.connected = data.connected;
       document.getElementById('device-dot').classList.toggle('connected', state.connected);
       const label = document.getElementById('device-label');
@@ -524,8 +532,8 @@
   async function loadFile(file) {
     clearNotice();
     if (!file || state.scanRunning || state.starting || state.clearingHistory || state.savingPromotion) return;
-    if (location.protocol === 'file:') {
-      showFileProtocolWarning();
+    if (!localService) {
+      showLocalServiceWarning();
       return;
     }
     const suffix = file.name.split('.').pop().toLowerCase();
@@ -542,7 +550,7 @@
       const response = await fetch(`/api/parse?name=${encodeURIComponent(file.name)}`, {
         method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: file
       });
-      const data = await response.json();
+      const data = await readApiJson(response);
       if (!response.ok) throw new Error(data.error || '文件读取失败。');
       state.records = data.records;
       state.selectedRowNumbers = data.records.filter(row => row.expected_code).map(rowKey);
@@ -604,7 +612,7 @@
     updateButtons();
     try {
       const response = await fetch('/api/scan/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rows: state.records, selected_row_numbers: state.selectedRowNumbers, file: state.file, promote: true }) });
-      const data = await response.json();
+      const data = await readApiJson(response);
       if (!response.ok) throw new Error(data.error || '无法启动视频识别。');
       state.runId = data.run_id;
       state.selectionDirty = false;
@@ -635,7 +643,7 @@
     skipButton.disabled = true;
     try {
       const response = await fetch('/api/scan/resume', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode, link: mode === 'retry' ? scanLinkInput.value.trim() : '' }) });
-      const data = await response.json();
+      const data = await readApiJson(response);
       if (!response.ok) throw new Error(data.error || '无法继续识别。');
       scanLinkInput.value = '';
       await refreshScan();
@@ -650,7 +658,7 @@
     updateButtons();
     try {
       const response = await fetch('/api/scan/clear', { method: 'POST' });
-      const data = await response.json();
+      const data = await readApiJson(response);
       if (!response.ok) throw new Error(data.error || '清空失败，请重试。');
       state.scanned = [];
       state.cachedSkips = 0;
@@ -681,7 +689,7 @@
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ video_code: code, operation_id: operationId, status })
       });
-      const data = await response.json();
+      const data = await readApiJson(response);
       if (!response.ok) throw new Error(data.error || '确认结果保存失败，请重试。');
       const scan = data.scan;
       state.scanned = uniqueHistory(scan.scanned || []);
@@ -733,13 +741,13 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   });
   async function refreshScan() {
-    if (state.polling || state.clearingHistory || state.savingPromotion || location.protocol === 'file:') return;
+    if (state.polling || state.clearingHistory || state.savingPromotion || !localService) return;
     state.polling = true;
     const generation = state.requestGeneration;
     try {
       const response = await fetch('/api/scan/status', { cache: 'no-store' });
       if (!response.ok) throw new Error('无法读取识别状态。');
-      const scan = await response.json();
+      const scan = await readApiJson(response);
       // Ignore a response requested before a history clear or manual confirmation.
       if (generation !== state.requestGeneration || state.clearingHistory || state.savingPromotion) return;
       state.scanRunning = Boolean(scan.running);
@@ -784,8 +792,10 @@
   restoreSession();
   setActiveTab(state.activeTab);
   renderRows();
-  if (location.protocol === 'file:') showFileProtocolWarning();
-  if (location.protocol !== 'file:') {
+  if (!localService) {
+    document.getElementById('device-label').textContent = '需在本机打开工具';
+    showLocalServiceWarning();
+  } else {
     refreshDevice();
     setInterval(refreshDevice, 5000);
     refreshScan();

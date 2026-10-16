@@ -10,6 +10,12 @@
 4. 上传文件。表头需要包含 `Video ID`、`Video Link`、`Duration`、`Daily budget`、`Objective`。
 5. 在“目标视频列表”Tab 勾选本轮要匹配和投广的视频，可逐行选择或全选；核对 Duration、Daily budget、Objective 后，点击“开始识别并投广”。流程从 Seller Home → Shopee Video 的第一个视频开始，只把勾选的视频作为本轮目标。
 
+### GitHub Pages 与模拟器
+
+GitHub Pages 地址 `https://sherryshen2.github.io/Auto-Video-Ads-Tool/` 只能展示静态网页，不能运行本项目的 Python `app.py`。上传 Excel 和控制模拟器依赖本机的 `/api/*` 接口；直接在 Pages 页面上传时，接口可能返回 HTML 错误页，浏览器因而显示 `Unexpected token '<' ... is not valid JSON`。请在**运行模拟器的同一台 Mac**上启动 `python3 app.py`，用 [本机工具地址](http://127.0.0.1:8765/) 上传文件和操作模拟器。
+
+模拟器通过 Android Debug Bridge (ADB) 与本机服务连接，无需把模拟器连接到 GitHub。可在终端运行 `~/Library/Android/sdk/platform-tools/adb devices`，看到 `emulator-5554 device` 等设备记录后，再刷新本机工具地址；网页右上角会显示模拟器连接状态。若使用另一台电脑打开 GitHub Pages，该电脑的 `127.0.0.1` 指向它自己，无法调用这台 Mac 上的模拟器。
+
 “系统遍历记录”在独立 Tab 中展示，仍记录本轮遍历到的所有视频。未勾选的 Excel 行一直保留在目标视频列表中，但不参与本轮匹配或投广。默认勾选所有可解析 Video Link 的行；没有勾选可识别视频时无法启动。任务运行中不能修改勾选状态。
 
 Shopee 当前页面提示：**发布 GMV Max 会停止其他正在投放的视频广告**。本轮勾选的视频包含 GMV Max 时，网页会显示这一提示。
